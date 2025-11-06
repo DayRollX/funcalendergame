@@ -22,6 +22,8 @@ class GameState:
         self.money = 0
         self.items = set()
         self.month_index = 11  # Start in December
+        # Pre-generate events for every month/day at game start
+        self.events = self.generate_events()
 
     def has_item(self, item):
         return item in self.items
@@ -34,30 +36,63 @@ class GameState:
         print(f"✨ Jumps: {self.jumps} | 💰 Money: {self.money}")
         print(f"🎒 Items: {', '.join(self.items) if self.items else 'None'}")
 
+    def generate_events(self):
+        """Generate a map of events for every month and day."""
+        rewards = [
+            ("You found a shiny coin!", ("money", 10)),
+            ("You discovered an energy drink!", ("jump", 1)),
+            ("You met a friendly guide!", ("item", "See Mondays")),
+            ("You found a mysterious charm!", ("item", "Odd Bonus")),
+        ]
+
+        all_events = []
+        for m_idx, (_, days) in enumerate(MONTHS):
+            month_events = {}
+            for day in range(1, days + 1):
+                event_type = random.choice(["story", "store", "bad"])
+
+                if event_type == "story":
+                    text, reward = random.choice(rewards)
+                    month_events[day] = ("story", (text, reward))
+
+                elif event_type == "store":
+                    month_events[day] = ("store", None)
+
+                else:  # bad
+                    penalties = ["lose_jump", "lose_money", "go_back_month"]
+                    # Don't allow "go_back_month" in December
+                    if m_idx == 11 and "go_back_month" in penalties:
+                        penalties.remove("go_back_month")
+                    penalty = random.choice(penalties)
+                    month_events[day] = ("bad", penalty)
+
+            all_events.append(month_events)
+        return all_events
+
 
 def trigger_event(state, day):
-    """Select a random event."""
-    event_type = random.choice(["story", "store", "bad"])
-
+    """Deliver the pre-generated event for the current month/day."""
     print("\n===== EVENT TRIGGERED =====")
 
+    month_idx = state.month_index
+    try:
+        event_type, payload = state.events[month_idx][day]
+    except (IndexError, KeyError):
+        print("Nothing happens today.")
+        return
+
     if event_type == "story":
-        story_event(state)
+        # payload == (text, reward)
+        story_event(state, payload)
     elif event_type == "store":
         store_event(state)
-    else:
-        bad_event(state, day)
+    else:  # "bad"
+        bad_event(state, payload)
 
 
-def story_event(state):
-    rewards = [
-        ("You found a shiny coin!", ("money", 10)),
-        ("You discovered an energy drink!", ("jump", 1)),
-        ("You met a friendly guide!", ("item", "See Mondays")),
-        ("You found a mysterious charm!", ("item", "Odd Bonus")),
-    ]
-    text, reward = random.choice(rewards)
-
+def story_event(state, payload):
+    # payload: (text, reward)
+    text, reward = payload
     print(f"\n📖 STORY EVENT: {text}")
 
     kind, value = reward
@@ -100,15 +135,8 @@ def store_event(state):
     print("Leaving store...")
 
 
-def bad_event(state, day):
-    penalties = ["lose_jump", "lose_money", "go_back_month"]
-
-    # Don't allow "go back month" in December
-    if state.month_index == 11:
-        penalties.remove("go_back_month")
-
-    penalty = random.choice(penalties)
-
+def bad_event(state, penalty):
+    # penalty is one of: "lose_jump", "lose_money", "go_back_month"
     print("\n⚠️ BAD EVENT!")
 
     if penalty == "lose_jump":

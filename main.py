@@ -1,3 +1,4 @@
+
 import random
 
 # Months with days
@@ -18,7 +19,7 @@ MONTHS = [
 
 class GameState:
     def __init__(self):
-        self.jumps = 5
+        self.points = 0
         self.money = 0
         self.items = set()
         self.month_index = 11  # Start in December
@@ -33,14 +34,14 @@ class GameState:
 
     def display_status(self):
         print(f"\n🗓  Current Month: {MONTHS[self.month_index][0]}")
-        print(f"✨ Jumps: {self.jumps} | 💰 Money: {self.money}")
+        print(f"⭐ Points: {self.points} | 💰 Money: {self.money}")
         print(f"🎒 Items: {', '.join(self.items) if self.items else 'None'}")
 
     def generate_events(self):
         """Generate a map of events for every month and day."""
         rewards = [
             ("You found a shiny coin!", ("money", 10)),
-            ("You discovered an energy drink!", ("jump", 1)),
+            ("You discovered a point token!", ("points", 5)),
             ("You met a friendly guide!", ("item", "See Mondays")),
             ("You found a mysterious charm!", ("item", "Odd Bonus")),
         ]
@@ -59,7 +60,7 @@ class GameState:
                     month_events[day] = ("store", None)
 
                 else:  # bad
-                    penalties = ["lose_jump", "lose_money", "go_back_month"]
+                    penalties = ["lose_points", "lose_money", "go_back_month"]
                     # Don't allow "go_back_month" in December
                     if m_idx == 11 and "go_back_month" in penalties:
                         penalties.remove("go_back_month")
@@ -100,9 +101,9 @@ def story_event(state, payload):
     if kind == "money":
         state.money += value
         print(f"💰 You received +{value} money!")
-    elif kind == "jump":
-        state.jumps += value
-        print(f"✨ You received +{value} jump!")
+    elif kind == "points":
+        state.points += value
+        print(f"⭐ You received +{value} points!")
     elif kind == "item":
         state.add_item(value)
         print(f"🎒 You gained item: {value}")
@@ -112,7 +113,7 @@ def store_event(state):
     print("\n🛒 STORE EVENT — You may purchase an item.")
 
     store_items = {
-        "1": ("+1 Jump", 15),
+        "1": ("+10 Points", 15),
         "2": ("See Mondays", 20),
         "3": ("Odd Bonus", 25),
         "0": ("Exit", 0),
@@ -124,11 +125,16 @@ def store_event(state):
     choice = input("Choose an item: ")
 
     if choice in store_items and choice != "0":
-        item, cost = store_items[choice]
+        item_name, cost = store_items[choice]
         if state.money >= cost:
             state.money -= cost
-            state.add_item(item)
-            print(f"✅ Purchased {item}!")
+            # Immediate point purchases vs persistent items
+            if item_name == "+10 Points":
+                state.points += 10
+                print(f"✅ Purchased {item_name}! +10 points granted.")
+            else:
+                state.add_item(item_name)
+                print(f"✅ Purchased {item_name}!")
         else:
             print("❌ Not enough money.")
 
@@ -136,12 +142,14 @@ def store_event(state):
 
 
 def bad_event(state, penalty):
-    # penalty is one of: "lose_jump", "lose_money", "go_back_month"
+    # penalty is one of: "lose_points", "lose_money", "go_back_month"
     print("\n⚠️ BAD EVENT!")
 
-    if penalty == "lose_jump":
-        print("You slipped and fell. Lost 1 jump.")
-        state.jumps -= 1
+    if penalty == "lose_points":
+        loss = random.randint(5, 15)
+        loss = min(loss, state.points)
+        print(f"An unfortunate mishap! You lost {loss} points.")
+        state.points -= loss
 
     elif penalty == "lose_money":
         loss = random.randint(5, 15)
@@ -167,11 +175,6 @@ def play_game():
             print("\n🎉🎉 YOU WIN! You made it through the year! 🎉🎉")
             return
 
-        # Lose condition
-        if state.jumps <= 0:
-            print("\n💀 You have no jumps left... Game Over.")
-            return
-
         month_name, days = MONTHS[state.month_index]
         print(f"\nPick a date in {month_name} (1–{days}):")
 
@@ -191,13 +194,10 @@ def play_game():
             print("❌ Invalid input.")
             continue
 
-        # Jump used
-        state.jumps -= 1
-
-        # Odd-day bonus
+        # Odd-day bonus (now point-based)
         if day % 2 == 1 and state.has_item("Odd Bonus"):
-            print("🎁 Bonus! Odd day bonus: +10 money!")
-            state.money += 10
+            print("🎁 Bonus! Odd day bonus: +10 points!")
+            state.points += 10
 
         trigger_event(state, day)
 

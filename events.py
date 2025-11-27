@@ -1,10 +1,21 @@
 import random
+from weather import get_weather_emoji, get_weather_description
 
 def trigger_event(state, day):
     """Deliver the pre-generated event for the current month/day."""
     print("\n===== EVENT TRIGGERED =====")
 
     month_idx = state.month_index
+    
+    # Display weather for the day
+    try:
+        weather = state.weather[month_idx][day]
+        emoji = get_weather_emoji(weather)
+        description = get_weather_description(weather)
+        print(f"{emoji} Weather: {description}")
+    except (IndexError, KeyError):
+        pass
+    
     try:
         event_type, payload = state.events[month_idx][day]
     except (IndexError, KeyError):

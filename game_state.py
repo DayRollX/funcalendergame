@@ -1,4 +1,5 @@
 import random
+from weather import generate_weather_for_year
 
 # Months with days
 MONTHS = [
@@ -24,6 +25,8 @@ class GameState:
         self.month_index = 11  # Start in December
         # Pre-generate events for every month/day at game start
         self.events = self.generate_events()
+        # Pre-generate weather for every month/day at game start
+        self.weather = generate_weather_for_year()
 
     def has_item(self, item):
         return item in self.items

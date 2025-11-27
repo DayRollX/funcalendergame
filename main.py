@@ -42,6 +42,15 @@ def play_game():
             mondays = [d for d in range(1, days + 1) if d % 7 == 1]
             print("Mondays:", mondays)
 
+        # Item effect: reveal rainy days
+        if state.has_item("Rain Stick"):
+            print("🌧️ Rain Stick reveals rainy days:")
+            rainy_days = [d for d in range(1, days + 1) if state.weather[state.month_index][d] == "Rainy"]
+            if rainy_days:
+                print("Rainy days:", rainy_days)
+            else:
+                print("No rainy days this month!")
+
         # Input validation
         try:
             day = int(input("> "))

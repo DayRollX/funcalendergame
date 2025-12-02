@@ -1,5 +1,6 @@
 from game_state import GameState
 from events import trigger_event, story_event, store_event, bad_event
+from weather import get_season, get_weather_emoji
 
 import random
 
@@ -32,13 +33,23 @@ def play_game():
             return
 
         month_name, days = MONTHS[state.month_index]
-        print(f"\nPick a date in {month_name} (1–{days}):")
+        season = get_season(state.month_index)
+        print(f"\nPick a date in {month_name} (1–{days}) — 🌍 Season: {season}")
 
         # Item effect: reveal Mondays
         if state.has_item("See Mondays"):
             print("📅 You can see which days are Mondays (not actual events):")
             mondays = [d for d in range(1, days + 1) if d % 7 == 1]
             print("Mondays:", mondays)
+
+        # Item effect: reveal rainy days
+        if state.has_item("Rain Stick"):
+            print("🌧️ Rain Stick reveals rainy days:")
+            rainy_days = [d for d in range(1, days + 1) if state.weather[state.month_index][d] == "Rainy"]
+            if rainy_days:
+                print("Rainy days:", rainy_days)
+            else:
+                print("No rainy days this month!")
 
         # Input validation
         try:

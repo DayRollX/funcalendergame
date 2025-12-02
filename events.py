@@ -1,10 +1,38 @@
 import random
+from weather import get_weather_emoji, get_weather_description
+from weather_effects import apply_weather_effect
 
 def trigger_event(state, day):
     """Deliver the pre-generated event for the current month/day."""
     print("\n===== EVENT TRIGGERED =====")
 
     month_idx = state.month_index
+    
+    # Display weather for the day
+    try:
+        weather = state.weather[month_idx][day]
+        emoji = get_weather_emoji(weather)
+        description = get_weather_description(weather)
+        print(f"{emoji} Weather: {description}")
+
+        # Apply base weather effect (configured in weather_effects.py)
+        try:
+            apply_weather_effect(state, weather)
+        except Exception:
+            # Fail-safe: do not let a weather effect crash the event flow
+            pass
+
+        # Apply weather-based item effects
+        if weather == "Rainy" and state.has_item("Umbrella"):
+            state.money += 10
+            print(f"☔ Umbrella triggered! You gained 10 coins!")
+
+        if weather == "Sunny" and state.has_item("Sunny Orb"):
+            state.points += 5
+            print(f"☀️ Sunny Orb triggered! You gained 5 points!")
+    except (IndexError, KeyError):
+        pass
+    
     try:
         event_type, payload = state.events[month_idx][day]
     except (IndexError, KeyError):
@@ -43,6 +71,9 @@ def store_event(state):
         "1": ("+10 Points", 15),
         "2": ("See Mondays", 20),
         "3": ("Odd Bonus", 25),
+        "4": ("Umbrella", 30),
+        "5": ("Sunny Orb", 35),
+        "6": ("Rain Stick", 40),
         "0": ("Exit", 0),
     }
 
@@ -61,7 +92,14 @@ def store_event(state):
                 print(f"✅ Purchased {item_name}! +10 points granted.")
             else:
                 state.add_item(item_name)
-                print(f"✅ Purchased {item_name}!")
+                if item_name == "Umbrella":
+                    print(f"✅ Purchased {item_name}! Get 10 coins on rainy days.")
+                elif item_name == "Sunny Orb":
+                    print(f"✅ Purchased {item_name}! Get 5 points on sunny days.")
+                elif item_name == "Rain Stick":
+                    print(f"✅ Purchased {item_name}! Shows all rainy days in the month.")
+                else:
+                    print(f"✅ Purchased {item_name}!")
         else:
             print("❌ Not enough money.")
 

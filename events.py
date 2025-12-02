@@ -1,5 +1,6 @@
 import random
 from weather import get_weather_emoji, get_weather_description
+from weather_effects import apply_weather_effect
 
 def trigger_event(state, day):
     """Deliver the pre-generated event for the current month/day."""
@@ -13,12 +14,19 @@ def trigger_event(state, day):
         emoji = get_weather_emoji(weather)
         description = get_weather_description(weather)
         print(f"{emoji} Weather: {description}")
-        
+
+        # Apply base weather effect (configured in weather_effects.py)
+        try:
+            apply_weather_effect(state, weather)
+        except Exception:
+            # Fail-safe: do not let a weather effect crash the event flow
+            pass
+
         # Apply weather-based item effects
         if weather == "Rainy" and state.has_item("Umbrella"):
             state.money += 10
             print(f"☔ Umbrella triggered! You gained 10 coins!")
-        
+
         if weather == "Sunny" and state.has_item("Sunny Orb"):
             state.points += 5
             print(f"☀️ Sunny Orb triggered! You gained 5 points!")
